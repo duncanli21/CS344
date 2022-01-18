@@ -346,7 +346,37 @@ void choice_2(struct movie *list)
     free(scanned_years);    // free array
 }
 
-// void choice_3()
+ void choice_3(struct movie *list)
+ {
+     char input[21]; 
+
+     printf("Enter the language for which you want to see movies: ");
+     scanf("%s", input); 
+
+    //  printf("\n%s", input);
+
+     int count = 0; 
+
+     while(list != NULL)
+     {  
+        int i=0; 
+        for(i=0; i < list->num_langs; i++)
+        {
+            if(strcmp(list->languages[i], input) == 0)
+            {
+                printf("%s %s\n", list->year, list->title);
+                count++; 
+            }
+        }
+
+        list= list->next;
+     }
+
+     if(count == 0)
+        printf("No data for movies released in %s\n", input);
+    
+    return; 
+ }
 
 void first_choice(struct movie *list)
 {
@@ -376,6 +406,9 @@ void first_choice(struct movie *list)
     
     if(main_choice == 2)
         choice_2(list);
+    
+    if(main_choice == 3)
+        choice_3(list); 
     
     }
 }
