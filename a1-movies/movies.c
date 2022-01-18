@@ -5,116 +5,138 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h> 
 
-/* struct for student information */
+// struct language
+// {
+//     char *name; 
+//     struct language *next; 
+// }
+
+/* struct for movie information */
 struct movie
 {
     char *title;
     char *year;
-    char **languages;
+    char languages[5][21];
+    int num_langs; 
     char *rating;
     struct movie *next;
 };
 
+void createLanguages(char *lang_str, struct movie* current_movie)
+{
+    char delimiters[] = "[];";
+
+    char *saveptr2; 
+
+    int i=0, j=0; 
+
+    char *token; 
+
+    // printf("\nin\n");
+
+    // current_movie->languages = (char**)malloc(5 * sizeof(char*));
+
+    token = strtok_r(lang_str, delimiters, &saveptr2); 
+    // printf("%s n" , token);
+    // current_movie->languages[i] = calloc(strlen(token)+1, sizeof(char)); 
+    strcpy(current_movie->languages[i], token);  
+
+    // printf("language Token is : %s\n", current_movie->languages[i]);
+
+    current_movie->num_langs = 1; 
+
+    // printf("\nin\n");
+
+    while(token != NULL)
+    {
+        i++; 
+        token = strtok_r(NULL, delimiters, &saveptr2); 
+        // printf("%s " , token);
+        if(token == NULL)
+        {
+            // printf("NULL Token"); 
+            continue; 
+        }
+        // current_movie->languages[i] = calloc(strlen(token)+1, sizeof(char)); 
+        strcpy(current_movie->languages[i], token);
+        current_movie->num_langs++; 
+        // printf("");
+    }
+
+    // for(j=0; j<i; j++)
+    // {
+    //     // printf("%s, ", current_movie->languages[i]); 
+    // }
+
+    return; 
+}
+
 /* Parse the current line which is space delimited and create a
-*  student struct with the data in this line
+*  movie struct with the data in this line
 */
-struct movie *createMovies(char *currLine)
+struct movie *createMovie(char *currLine)
 {
     struct movie *currMovie = malloc(sizeof(struct movie));
 
     // For use with strtok_r
-    char *saveptr, *saveptr2;
+    char *saveptr;
 
+    // currMovie->num_langs = NULL;
 
     // The first token is the title
     char *token = strtok_r(currLine, ",", &saveptr);
+    if(token == NULL)
+        return currMovie; 
+    // printf("title token : %s\n", token);
     currMovie->title = calloc(strlen(token) + 1, sizeof(char));
     strcpy(currMovie->title, token);
 
     // The next token is the year
     token = strtok_r(NULL, ",", &saveptr);
-    currMovie->year = calloc(strlen(token) + 1, sizeof(char));
+    // printf("year token : %s\n", token);
+    // int year = atoi(token); 
+    currMovie->year = calloc(strlen(token)+1, sizeof(char));
     strcpy(currMovie->year, token);
 
     // The next token is the languages
     token = strtok_r(NULL, ",", &saveptr);
-
-    /*
-    * Citation for the following 2 lines: 
-    * Date 1/16/22
-    * Adapted from: 
-    * https://reactgo.com/c-remove-first-last-character-string/
-    */
-    char *without_first_last = token+1;     // remove the first [
-    without_first_last[strlen(without_first_last)-1] = "\0"; // Remove the last ] 
-
-    char *language_array[6]; 
-
-    // allocate memory for an array of languages
-    // currMovie->languages = (char**)malloc(6 * sizeof(char*)); 
-
-    // // Make sure that malloc did not fail
-    // if(currMovie->languages == NULL)
-    // {
-    //     printf("Memory not allocated./n");
-    //     exit(0);
-    // }
-
-    // int i=0;
-    // // allocate memory for each string within the array
-    // for(i=0; i<6; i++)
-    //     currMovie->languages[i]  = (char*)malloc(21); 
-    
-
-    language_array[0] = strtok_r(without_first_last, ";", &saveptr2);
-    printf("%s ", language_array[0]);
-    int idx; 
-    for(idx = 1; idx<5; idx++)  // loop for max num languages 
-    {
-        char* lang_tok = strtok_r(NULL, ";", &saveptr2);  // Get the second language
-
-        printf("%s ", lang_tok); 
-        
-        if (lang_tok == NULL)   // leave if there are no more languages
-            break;  
-
-        strcpy(language_array[idx], lang_tok);    // copy language into array
-    }
-    printf("\n");
-
-    
-
-    
-    // currMovie->languages = calloc(strlen(token) + 1, sizeof(char));
-    // strcpy(currMovie->languages, token);
-
-
+    // printf("language token : %s\n", token);
+    createLanguages(token, currMovie); 
+    // currMovie->languages = calloc(strlen(lang_arr), sizeof(char));
+    // strcpy(currMovie->languages, lang_arr);
 
     // The last token is the rating
     token = strtok_r(NULL, "\n", &saveptr);
-    currMovie->rating = calloc(strlen(token) + 1, sizeof(char));
+    // printf("rating token : %s\n", token);
+    currMovie->rating = calloc(strlen(token)+1, sizeof(char));
     strcpy(currMovie->rating, token);
 
-    // Set the next node to NULL in the newly created student entry
+    // printf("Rating Copied\n");
+
+    // Set the next node to NULL in the newly created movie entry
     currMovie->next = NULL;
+
+    // printf("about to return");
+    
 
     return currMovie;
 }
 
+
+
 /*
-* Return a linked list of students by parsing data from
+* Return a linked list of movies by parsing data from
 * each line of the specified file.
 */
 struct movie *processFile(char *filePath)
 {
     // Open the specified file for reading only
-    FILE *studentFile = fopen(filePath, "r");
+    FILE *movieFile = fopen(filePath, "r");
 
     char *currLine = NULL;
     size_t len = 0;
-    size_t nread;
+    ssize_t nread;
     char *token;
 
     // The head of the linked list
@@ -123,10 +145,10 @@ struct movie *processFile(char *filePath)
     struct movie *tail = NULL;
 
     // Read the file line by line
-    while ((nread = getline(&currLine, &len, studentFile)) != -1)
+    while ((nread = getline(&currLine, &len, movieFile)) != -1)
     {
-        // Get a new student node corresponding to the current line
-        struct movie *newNode = createMovies(currLine);
+        // Get a new movie node corresponding to the current line
+        struct movie *newNode = createMovie(currLine);
 
         // Is this the first node in the linked list?
         if (head == NULL)
@@ -144,47 +166,51 @@ struct movie *processFile(char *filePath)
             tail = newNode;
         }
     }
+
+    // Need to remove the first node because that is the header 
+    struct movie *temp = head; 
+    
+    head = head->next;  
+    free(temp->title);
+    free(temp->year);
+    free(temp->rating);
+    free(temp);
+
     free(currLine);
-    fclose(studentFile);
+    fclose(movieFile);
     return head;
 }
 
 /*
-* Print data for the given student
+* Print data for the given movie
 */
 void printMovie(struct movie* aMovie){
-  printf("%s, ", aMovie->title);
+  printf("\n%s, ", aMovie->title);
   int i;
 
-
-  for(i=0; i<6; i++)
+  for(i=0; i<aMovie->num_langs; i++)
   {
-      if(aMovie->languages[i] == NULL)
-        break; 
+    //   if(aMovie->languages[i] == NULL)
+    //     break; 
       printf("%s, ", aMovie->languages[i]); 
   }
 
-  printf("%s, %s" ,aMovie->year, aMovie->rating);
+  printf("%s, %s\n" ,aMovie->year, aMovie->rating);
 }
 /*
-* Print the linked list of students
+* Print the linked list of movies
 */
-void printMovieList(struct movie *list)
+void printmovieList(struct movie *list)
 {
     while (list != NULL)
     {
+        // printf("going to print movie\n");
         printMovie(list);
+        // printf("movie Printed\n");
         list = list->next;
+        // printf("list->next\n"); 
     }
-    // printf()
 }
-
-/*
-*   Process the file provided as an argument to the program to
-*   create a linked list of student structs and print out the list.
-*   Compile the program as follows:
-*       gcc --std=gnu99 -o students main.c
-*/
 
 /*
 * Citation for the following function: 
@@ -209,27 +235,177 @@ int count_list_length(struct movie *list)
     return count; 
 }
 
-void ui_loop(struct movie *list)
+
+void choice_1(struct movie *list)
+{
+    int desired_year=0; 
+
+    while((desired_year <= 0) || ((desired_year > 2023)))
+    {
+        printf("\nEnter the Year for which you want to see movies: ");
+        scanf("%d", &desired_year); 
+        
+    }
+
+    int movie_count = 0; 
+    while(list != NULL)
+    {
+        if(list->year == NULL)
+        {
+            printf("year value is NULL");
+            exit(0);
+        }
+        int int_year = atoi(list->year); 
+        // printf("%d\n", int_year);
+        if(int_year == desired_year)
+        {
+            printf("%s\n", list->title); 
+            movie_count++;
+        }
+        
+        list = list->next; 
+    }
+
+    if(movie_count == 0)
+        printf("There is no data for movies released in the year %d\n", desired_year); 
+
+    return; 
+}
+
+void choice_2(struct movie *list)
+{
+    int num_movies = count_list_length(list); // Get the number of movies
+
+    // make a pointer to an array to store years that have already been scanned
+    int *scanned_years;    
+
+    // allocate memory for array
+    scanned_years = malloc(num_movies * sizeof(int)); 
+
+    // initialize counter for the array
+    int count = 0; 
+
+    // loop through linked list
+    while(list != NULL)
+    {
+        // initialize some ints
+        int j, scanned = 0; 
+
+        // get the year for this item in the list
+        int year = atoi(list->year); 
+
+        // Loop to make sure that we have not already scanned that year
+        for(j=0; j<count; j++)
+        {
+            if(scanned_years[j] == year)
+                scanned = 1; 
+        }
+
+        // if year got scanned already then move on
+        if(scanned == 1)
+        {
+            list = list->next;
+            continue; 
+        }
+
+        // get the rating as a float 
+        float rating = atof(list->rating); 
+
+        // get the name of the movie
+        char *name = list->title; 
+
+        // make a temp list to sort through again
+        struct movie *temp = list; 
+
+        // dont look at the same index again 
+        temp = temp->next; 
+
+        // another loop to find other instances of the same year
+        while(temp != NULL)
+        {
+            // if we find the same year... 
+            if(year == atoi(temp->year))
+            {
+                // and it has a better rating... 
+                if(atof(temp->rating) > rating)
+                {
+                    // replace our last rating and name with this one because 
+                    // it is better
+                    rating = atof(temp->rating); 
+                    name = temp->title; 
+                }
+            }
+            temp = temp->next; // move on
+        }
+
+        printf("%d %.2f %s\n", year, rating, name); 
+        scanned_years[count] = year; // add this year to the list of scanned years
+        count++;    // advance the count
+    }
+
+    free(scanned_years);    // free array
+}
+
+// void choice_3()
+
+void first_choice(struct movie *list)
 {
     while(1)
     {
+    printf("\n1. Show movies released in the specified year\n");
+    printf("2. Show the highest rated movie for each year\n");
+    printf(
+        "3. Show the title and year of the release of all movies in a specific language\n"
+        ); 
+    printf("4. Exit from the program\n"); 
 
+    // printf("\nEnter a choice from 1 to 4: "); 
+
+    int main_choice = 0; 
+
+    while((main_choice < 1) || (main_choice > 4))
+    {
+        printf("\nEnter a choice from 1 to 4: ");
+        scanf("%d", &main_choice); 
+    }
+    if(main_choice == 4)
+        return; 
+
+    if(main_choice == 1)
+        choice_1(list);
+    
+    if(main_choice == 2)
+        choice_2(list);
+    
     }
 }
 
-free_all(struct movie *list)
+void free_mem(struct movie *list)
 {
-    struct movie* current_node = list; 
 
-    while(current_node != NULL)
-    {
-        int i;
-        for(i=0; i<6; i++)   
-            free(current_node->languages[i]); 
-        
-        free(current_node->languages); 
+    struct movie* temp; 
+    while(list != NULL)
+    {   
+        temp = list;
+        list = list->next; 
 
-        current_node = current_node->next; 
+        free(temp->title);
+
+        // printf("\ntitle Freed\n");
+
+        int i=0; 
+
+        free(temp->year);
+
+        // printf("Year Freed\n"); 
+        free(temp->rating);
+
+        // printf("rating Freed\n");
+
+        free(temp);
+
+        // printf("List Freed\n");
+
     }
 }
 
@@ -238,13 +414,18 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         printf("You must provide the name of the file to process\n");
-        printf("Example usage: ./movies movies_sample_1.csv\n");
+        printf("Example usage: ./movies movie_info1.txt\n");
         return EXIT_FAILURE;
     }
     struct movie *list = processFile(argv[1]);
-    printMovieList(list);
+    printmovieList(list);
 
+    int num_movies = count_list_length(list); 
 
-    free_all(list); 
+    printf("\nProcessed file %s and parsed data for %d movies.\n", argv[1], num_movies); 
+
+    first_choice(list);
+
+    free_mem(list); 
     return EXIT_SUCCESS;
-}
+} 
