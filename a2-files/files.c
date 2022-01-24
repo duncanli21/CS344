@@ -236,6 +236,19 @@ void process_file(DIR* currDir, char *file_name, struct stat stats)
     srand(time(NULL));
     int random_num = rand() % 100000; 
 
+    // turn the int into a string
+    /*
+    *  Citation for the following 3 lines: 
+    *
+    *           Date: 1/23/22 
+    *           Adapted from: Stack Overflow
+    *           Link: https://stackoverflow.com/questions/8257714/how-to-convert-an-int-to-string-in-c
+    */ 
+    char random_num_string[256];
+    memset(random_num_string, '\0', strlen(random_num_string));
+    sprintf(random_num_string, "%d", random_num);
+
+
     /*
     *  Citation for the following 4 lines: 
     *
@@ -249,10 +262,50 @@ void process_file(DIR* currDir, char *file_name, struct stat stats)
     memset(id_string, '\0', strlen(id_string));     // fill buffer with NULL
     strcpy(id_string, pwd->pw_name);    // copy it into our buffer
 
-    printf("\n%s\n", id_string);
+    
 
-    free_mem(list);
+    char path_name[256];
+    memset(path_name, '\0', strlen(path_name));
 
+    // Make the string for the middle of the directory name
+    char middle[] = ".movies.";      
+
+    // Create the string for the name of the directory
+    strcat(id_string, middle); 
+    strcat(id_string, random_num_string);
+
+    // printf("\n%s\n", id_string);
+
+    mkdir(id_string, 0750); // create the actual directory. permission -rwxr-x---
+
+    // chdir(id_string);
+
+    // Loop through the linked list
+    while(list != NULL)
+    {
+        char temp_path[256];    // Make a variable for the file path 
+        memset(temp_path, '\0', strlen(temp_path)); // populate buffer with NULL
+        strcpy(temp_path, id_string);   // copy directory name into buffer
+
+        strcat(temp_path, "/");     // add the "/"
+        strcat(temp_path, list->year);  // add the year  
+        strcat(temp_path, ".txt");  // add the file extension
+
+        // printf("%s\n", temp_path);  
+        // printf("%s\n", id_string);
+        
+
+        FILE *fp; // make a file pointer for the file
+
+        fp = fopen(temp_path, "a+");    // open file in append+ mode 
+        fprintf(fp, "%s\n", list->title);   // write the movie title into the file 
+        chmod(temp_path, 0640); // change the permissions for the file to -rw-r-----
+        fclose(fp);     // close the file
+
+        list = list->next;  // move on to the next item in the list
+    }
+    
+    free_mem(list);   // free all the memory allocated
     return; 
 }
 
