@@ -1,6 +1,6 @@
 /******************************************************************************
-*   The purpose of this program is to read in a file with movie data, sort it, 
-*   organize it, and return data to the user. 
+*   The purpose of this program is to navigate directories containing files 
+*   and perform a set of actions on the correct movie files.  
 *
 *   Author: Liam Duncan
 ******************************************************************************/
@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
-// #include <unistd.h>
 #include <time.h>
 #include <pwd.h>
 
@@ -29,6 +28,19 @@ struct movie
     struct movie *next;
 };
 
+// declare functions
+void main_menu();
+void choice_1();
+void specific_file(DIR* currDir); 
+void smallest_file(DIR* currDir); 
+void largest_file(DIR* currDir) ; 
+void process_file(DIR* currDir, char *file_name, struct stat stats); 
+void free_mem(struct movie *list); 
+struct movie *processFile(char *filePath); 
+struct movie *createMovie(char *currLine); 
+void createLanguages(char *lang_str, struct movie* current_movie); 
+
+
 /*******************************************************************************
  * Function Purpose: To parse the languages for each movie from the source file. 
  * 
@@ -37,6 +49,9 @@ struct movie
  *                        languages for the movie. 
  *              
  *              current_movie: Current movie struct. 
+ * 
+ * Citation: 
+ *              This code was copied from my previous assignment 1. 
 *******************************************************************************/
 void createLanguages(char *lang_str, struct movie* current_movie)
 {
@@ -221,9 +236,17 @@ void free_mem(struct movie *list)
     }
 }
 
-
+/*******************************************************************************
+ * Purpose: To Process a selected file 
+ * 
+ * Parameters: 
+ *              currDir: the current directory object
+ *              file_name: the name of the file as a string 
+ *              stats: stat struct for the file object
+*******************************************************************************/
 void process_file(DIR* currDir, char *file_name, struct stat stats)
 {
+    // make some variables for user id 
     uid_t user_id; 
     char id_string[256]; 
 
@@ -263,7 +286,7 @@ void process_file(DIR* currDir, char *file_name, struct stat stats)
     strcpy(id_string, pwd->pw_name);    // copy it into our buffer
 
     
-
+    // make a char array for the path name
     char path_name[256];
     memset(path_name, '\0', strlen(path_name));
 
@@ -278,7 +301,8 @@ void process_file(DIR* currDir, char *file_name, struct stat stats)
 
     mkdir(id_string, 0750); // create the actual directory. permission -rwxr-x---
 
-    // chdir(id_string);
+    printf("Created a directory with the name %s\n", id_string);
+
 
     // Loop through the linked list
     while(list != NULL)
@@ -297,6 +321,9 @@ void process_file(DIR* currDir, char *file_name, struct stat stats)
 
         FILE *fp; // make a file pointer for the file
 
+
+        // Citation: 
+        // Got info from canvas page. 
         fp = fopen(temp_path, "a+");    // open file in append+ mode 
         fprintf(fp, "%s\n", list->title);   // write the movie title into the file 
         chmod(temp_path, 0640); // change the permissions for the file to -rw-r-----
@@ -304,13 +331,26 @@ void process_file(DIR* currDir, char *file_name, struct stat stats)
 
         list = list->next;  // move on to the next item in the list
     }
-    
+
     free_mem(list);   // free all the memory allocated
     return; 
 }
 
+
+/*******************************************************************************
+ * Function Purpose: To find the largest file in the directory and process it  
+ * 
+ * Parameters: 
+ *              currDir: The current directory object
+ *              
+ * Citation: 
+ *           Date: 1/24/22
+ *           Adapted from: Canvas sample file
+ *           Link: https://replit.com/@cs344/35statexamplec
+*******************************************************************************/
 void largest_file(DIR* currDir)   
 {
+    // Create variables
     struct dirent *aDir; 
     struct stat tempStat; 
     struct stat permStat; 
@@ -338,33 +378,130 @@ void largest_file(DIR* currDir)
         }
     }
 
+    // Call function to process file
     process_file(currDir, file_name, permStat); 
     return; 
 }
 
+
+/*******************************************************************************
+ * Function Purpose: To find the smallest file in the directory and process it  
+ * 
+ * Parameters: 
+ *              currDir: The current directory object
+ *              
+ * Citation: 
+ *           Date: 1/24/22
+ *           Adapted from: Canvas sample file
+ *           Link: https://replit.com/@cs344/35statexamplec
+*******************************************************************************/
 void smallest_file(DIR* currDir)
 {
+
+    // Create variables
+    struct dirent *aDir; 
+    struct stat tempStat; 
+    struct stat permStat; 
+    off_t file_size; 
+    int i = 0; 
+    char file_name[256];
+
+    // Begin loop through current directory 
+    while((aDir = readdir(currDir)) != NULL)
+    {
+        // if statment will check if the movies_ prefix matches the file
+        if(strncmp(PREFIX, aDir->d_name, strlen(PREFIX)) == 0)
+        {
+            // Get the data for the file and load it into struct
+            stat(aDir->d_name, &tempStat); 
+            
+            if((i == 0) || (tempStat.st_size < file_size))
+            {
+                file_size = tempStat.st_size;    // update the file size
+                memset(file_name, '\0', sizeof(file_name)); // fill buffer with null chars  
+                strcpy(file_name, aDir->d_name);    // copy name into buffer
+                permStat = tempStat; 
+            }
+            i++;    // advance iterator so you know you arent on the first entry
+        }
+    }
+
+    // call function to process file
+    process_file(currDir, file_name, permStat); 
     return; 
 }
 
+
+
+/*******************************************************************************
+ * Function Purpose: To find a specific file in the directory and process it  
+ * 
+ * Parameters: 
+ *              currDir: The current directory object
+ *              
+ * Citation: 
+ *           Date: 1/24/22
+ *           Adapted from: Canvas sample file
+ *           Link: https://replit.com/@cs344/35statexamplec
+*******************************************************************************/
 void specific_file(DIR* currDir)
 {
+    // Create char array for input string
+    char input[60]; 
+
+    // Get the user input string
+    printf("Enter the complete file name: ");
+    scanf("%s", input);
+
+    // Create variables for directory and files 
+    struct dirent *aDir; 
+    struct stat tempStat; 
+    struct stat permStat; 
+    off_t file_size; 
+    int i = 0; 
+    char file_name[256];
+
+
+    // Begin loop through current directory 
+    while((aDir = readdir(currDir)) != NULL)
+    {
+        // if statment will check if the input matches the file name 
+        if(strncmp(input, aDir->d_name, strlen(input)) == 0)
+        {
+            // Get the data for the file and load it into struct
+            stat(aDir->d_name, &tempStat); 
+            memset(file_name, '\0', sizeof(file_name)); // fill buffer with null chars  
+            strcpy(file_name, aDir->d_name);    // copy name into buffer
+            permStat = tempStat; 
+            process_file(currDir, input, permStat); 
+            i++;    // advance iterator so you know you arent on the first entry
+        }
+            
+    }
+
+    // If the file was not found because the iterator was never advanced
+    if(i==0)
+    {
+        printf("The file %s could not be found. Try again\n", input);
+        choice_1(); // Go back to choice 1. Kinda recursive? 
+    }
+    
     return; 
 }
 
 
-
-
+/*******************************************************************************
+ * Function Purpose: Secondary menu UI of the program 
+ *          
+ * Citation: 
+ *           Date: 1/24/22
+ *           Adapted from: Canvas sample file
+ *           Link: https://replit.com/@cs344/35statexamplec
+*******************************************************************************/
 void choice_1()
 {    
 
-    DIR* currDir = opendir("."); 
-    // struct dirent *aDir;
-    // off_t file_size;
-    // struct stat dirStat;
-    // int i = 0;
-    // char entryName[256];
-
+    DIR* currDir = opendir(".");
 
     // print out options
     printf("\nWhich file do you want to process?\n");
@@ -399,6 +536,9 @@ void choice_1()
 
 
 
+/*******************************************************************************
+ * Purpose: Main menu UI for program. 
+*******************************************************************************/
 void main_menu()
 {
     while(1)
@@ -429,9 +569,6 @@ void main_menu()
 int main(int argc, char *argv[])
 {    
     main_menu(); 
-
-
-    
 
     return EXIT_SUCCESS; 
 }
