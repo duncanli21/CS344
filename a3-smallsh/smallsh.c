@@ -20,6 +20,7 @@ char **parse_input(char *input, int *token_count, char **input_arr);
 void free_all(char** arr, pid_t *pid_arr);
 int cd(char **input_arr, int token_count); 
 int handle_else(char **input_arr, int token_count, pid_t *pid_arr); 
+int redirect_out(char **input_arr, int i);
 
 int main(int argc, char* argv[])
 {
@@ -39,10 +40,10 @@ int prompt_loop()
     pid_t *pid_arr; 
     pid_arr = malloc(40 * sizeof(pid_t)); 
 
-    // Initialize the array with NULLs 
-    int i=0; 
-    for(i; i<40; i++)
-        pid_arr[i] = NULL; 
+    // // Initialize the array with NULLs 
+    // int i=0; 
+    // for(i; i<40; i++)
+    //     strcpy(pid_arr[i], "\0"); 
     
 
     while(1)
@@ -54,7 +55,6 @@ int prompt_loop()
         for(i; i<512; i++)
             input_arr[i] = malloc(2048 * sizeof(char)); 
         
-
         int token_count; 
 
         // Print prompt 
@@ -70,11 +70,8 @@ int prompt_loop()
 
         // handle empty line or comment 
         if((input[0] == '\n') || (input[0] == '#'))
-        {
-            // printf("That string was empty or a comment\n\n");
-            // fflush(stdout);
             continue; 
-        }
+        
 
         // parse the input into an array
         input_arr = parse_input(input, &token_count, input_arr); 
@@ -90,6 +87,8 @@ int prompt_loop()
         //     printf("%s ", input_arr[j]);
         //     fflush(stdout); 
         // }
+
+        find_special(input_arr, token_count); 
 
         if(strcmp(input_arr[0], "exit") == 0)
         {
@@ -115,12 +114,95 @@ int prompt_loop()
     return 0; 
 }
 
+int find_special(char **input_arr, int token_count)
+{
+    int j=0; 
+    for(j; j<token_count; j++)
+    {
+        printf("%s ", input_arr[j]); 
+        fflush(stdout); 
+    }
+    int i = 0; 
+
+    int strcm = strcmp(input_arr[i], ">"); 
+
+    for(i; i<token_count; i++)
+    {
+        if(strcmp(input_arr[i], ">") == 0)  // redirect output
+        {
+            // Open target file
+            int targetFD = open(input_arr[i+1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (targetFD == -1) { 
+                perror("target open()"); 
+                exit(1); 
+            }
+            printf("targetFD == %d\n", targetFD); // Written to terminal
+        
+            // Redirect stdout to target file
+            int result = dup2(targetFD, 1);
+            if (result == -1) { 
+                perror("target dup2()"); 
+                // exit(2); 
+            }
+            input_arr[i] == '\0'; 
+        }
+
+        // if(strcmp(input_arr[i], "<") == 0)  // Output redirection 
+
+        if(strcmp(input_arr[i], "$$") == 0)  // Variable expansion
+        {
+            
+        }
+
+        // // background command
+        // if((i == (token_count-1)) && (strcmp(input_arr[i], "&") == 0))  
+
+
+    }
+}
+
+int redirect_out(char **input_arr, int i)
+{
+	// Open target file
+	int targetFD = open(input_arr[i+1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (targetFD == -1) { 
+		perror("target open()"); 
+		exit(1); 
+	}
+	printf("targetFD == %d\n", targetFD); // Written to terminal
+  
+	// Redirect stdout to target file
+	int result = dup2(targetFD, 1);
+	if (result == -1) { 
+		perror("target dup2()"); 
+		exit(2); 
+	}
+
+    return 0; 
+}
+
 
 int handle_else(char **input_arr, int token_count, pid_t *pid_arr)
 {
     int child_status; 
 
     input_arr[token_count] = NULL;
+
+    printf("\n"); 
+    fflush(stdout); 
+
+    int j=0; 
+    for(j; j<token_count; j++)
+    {
+        printf("%s ", input_arr[j]); 
+        fflush(stdout); 
+    }
+
+    printf("\n"); 
+    fflush(stdout); 
+
+
+
 
     pid_t spawnPid = fork(); 
 
