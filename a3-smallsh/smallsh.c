@@ -21,6 +21,7 @@ void free_all(char** arr, pid_t *pid_arr);
 int cd(char **input_arr, int token_count); 
 int handle_else(char **input_arr, int token_count, pid_t *pid_arr); 
 int redirect_out(char **input_arr, int i);
+char **expansion(char **input_arr, int token_count, pid_t smallsh_pid); 
 
 int main(int argc, char* argv[])
 {
@@ -44,6 +45,8 @@ int prompt_loop()
     // int i=0; 
     // for(i; i<40; i++)
     //     strcpy(pid_arr[i], "\0"); 
+
+    pid_t smallsh_pid = getppid(); 
     
 
     while(1)
@@ -71,6 +74,8 @@ int prompt_loop()
         // handle empty line or comment 
         if((input[0] == '\n') || (input[0] == '#'))
             continue; 
+
+        
         
 
         // parse the input into an array
@@ -87,6 +92,29 @@ int prompt_loop()
         //     printf("%s ", input_arr[j]);
         //     fflush(stdout); 
         // }
+
+        printf("\n\nExpansion Test: \n"); 
+        fflush(stdout); 
+
+        // print out the items in the array
+        int j=0; 
+        for(j; j < (token_count); j++)
+        {
+            printf("%s ", input_arr[j]);
+            fflush(stdout); 
+        }
+        printf("\n");
+        fflush(stdout); 
+
+        input_arr = expansion(input_arr, token_count, smallsh_pid); 
+
+        // print out the items in the array
+        j=0; 
+        for(j; j < (token_count); j++)
+        {
+            printf("%s ", input_arr[j]);
+            fflush(stdout); 
+        }
 
         find_special(input_arr, token_count); 
 
@@ -151,7 +179,7 @@ int find_special(char **input_arr, int token_count)
 
         if(strcmp(input_arr[i], "$$") == 0)  // Variable expansion
         {
-            
+
         }
 
         // // background command
@@ -159,6 +187,50 @@ int find_special(char **input_arr, int token_count)
 
 
     }
+}
+
+char **expansion(char **input_arr, int token_count, pid_t smallsh_pid)
+{
+    int i, j, z; 
+
+    char str_pid[6]; 
+    sprintf(str_pid, "%d", smallsh_pid); 
+
+    printf("pid = %s", str_pid);
+    fflush(stdout);
+
+    int pid_len = strlen(str_pid); 
+
+  
+
+    for(i=0; i<token_count; i++)
+    {
+        char new_str[2048]; 
+        z=0; 
+
+        for(j=0; j<strlen(input_arr[i]); j++)
+        {     
+            // if we find 2 $ in a row which is our case for replacing
+            if((input_arr[i][j] == '$') && (input_arr[i][j+1] == '$'))
+            {
+                strcpy(&new_str[z], str_pid);
+                j++; 
+                z += pid_len; 
+            }
+            else
+                new_str[z++] = input_arr[i][j]; 
+        }
+        new_str[z] = '\0'; 
+
+        strcpy(input_arr[i], new_str); 
+
+        int k = 0;
+        for(k; k<2048; k++)
+            new_str[k] = '\0'; 
+        
+    }
+
+    return input_arr; 
 }
 
 int redirect_out(char **input_arr, int i)
